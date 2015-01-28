@@ -11,6 +11,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -55,7 +56,7 @@ public class DBPlugin extends PlayPlugin {
             if (!domain.equals("localhost")) {
                 serverOptions = new String[] {"-webAllowOthers"};
             }
-            
+
             h2Server = org.h2.tools.Server.createWebServer(serverOptions);
             h2Server.start();
 
@@ -78,7 +79,7 @@ public class DBPlugin extends PlayPlugin {
 
 	        boolean isJndiDatasource = false;
                 String datasourceName = p.getProperty("db", "");
-                // Identify datasource JNDI lookup name by 'jndi:' or 'java:' prefix 
+                // Identify datasource JNDI lookup name by 'jndi:' or 'java:' prefix
                 if (datasourceName.startsWith("jndi:")) {
                     datasourceName = datasourceName.substring("jndi:".length());
                     isJndiDatasource = true;
@@ -129,13 +130,13 @@ public class DBPlugin extends PlayPlugin {
                     ds.setMaxIdleTimeExcessConnections(Integer.parseInt(p.getProperty("db.pool.maxIdleTimeExcessConnections", "0")));
                     ds.setIdleConnectionTestPeriod(10);
                     ds.setTestConnectionOnCheckin(true);
-                    
+
                     // This check is not required, but here to make it clear that nothing changes for people
                     // that don't set this configuration property. It may be safely removed.
                     if(p.getProperty("db.isolation") != null) {
                         ds.setConnectionCustomizerClassName(play.db.DBPlugin.PlayConnectionCustomizer.class.getName());
                     }
-                    
+
                     DB.datasource = ds;
                     url = ds.getJdbcUrl();
                     Connection c = null;
@@ -225,7 +226,7 @@ public class DBPlugin extends PlayPlugin {
         }
         boolean isJndiDatasource = false;
         String datasourceName = p.getProperty("db", "");
-             
+
         if ((isJndiDatasource || datasourceName.startsWith("java:")) && p.getProperty("db.url") == null) {
             if (DB.datasource == null) {
                 return true;
@@ -252,7 +253,7 @@ public class DBPlugin extends PlayPlugin {
                 p.put("db.pass", password);
             }
         }
-        
+
         m = new jregex.Pattern("^postgres:(//)?(({user}[a-zA-Z0-9_]+)(:({pwd}[^@]+))?@)?(({host}[^/]+)/)?({name}[^\\s]+)$").matcher(p.getProperty("db", ""));
         if (m.matches()) {
             String user = m.group("user");
@@ -278,7 +279,7 @@ public class DBPlugin extends PlayPlugin {
         if ((p.getProperty("db.driver") == null) || (p.getProperty("db.url") == null)) {
             return false;
         }
-        
+
         if (DB.datasource == null) {
             return true;
         } else {
@@ -313,6 +314,13 @@ public class DBPlugin extends PlayPlugin {
 
         ProxyDriver(Driver d) {
             this.driver = d;
+        }
+
+        @Override
+        public java.util.logging.Logger getParentLogger()
+        throws SQLFeatureNotSupportedException {
+          // TODO Auto-generated method stub
+          return null;
         }
 
         public boolean acceptsURL(String u) throws SQLException {
